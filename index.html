@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Haze Watch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: one dark world. Serif for titles and big numbers, mono for small caps labels, sans for reading text. Haze section copies the supplied screenshot; weather cards use the same panel language. */
+:root{
+  --bg:#121416; --panel:#1B1F22; --well:#141618; --line:#2C3236; --ink:#E9ECEE; --soft:#C9CFD3; --muted:#8C969D;
+  --accent:#F0914A;
+  --b-good:#5FB38C; --b-mod:#E3C04A; --b-unh:#E0705A; --b-vun:#B07FCB; --b-haz:#D4607E;
+  --serif:'Cormorant Garamond','EB Garamond',Georgia,serif;
+  --sans:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1040px;margin:0 auto;padding:28px 20px 64px}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.serif{font-family:var(--serif);font-weight:500;font-variant-numeric:oldstyle-nums}
+.num{font-variant-numeric:tabular-nums}
+
+/* header */
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:24px}
+header h1{margin:6px 0 0;font-family:var(--serif);font-weight:500;font-size:40px;line-height:1;letter-spacing:-.01em}
+.tabs{display:flex;gap:6px}
+.tab{border:1px solid var(--line);background:transparent;color:var(--muted);padding:8px 18px;border-radius:8px;font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:#1A1208;font-weight:500}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:30px 36px}
+.card + .card, .card + .grid, .grid + .card{margin-top:20px}
+
+/* ---------- haze section ---------- */
+.hz h2{margin:10px 0 24px;font-family:var(--serif);font-weight:500;font-size:36px;line-height:1.1}
+.hz-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:22px;align-items:stretch}
+.mapbox{display:flex;flex-direction:column;justify-content:center;background:var(--well);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.map{display:block;width:100%;height:auto}
+.map .region{fill:color-mix(in srgb,var(--c) 38%,#141618);stroke:#171A1B;stroke-width:2;stroke-linejoin:round;cursor:pointer}
+.map .region:hover{fill:color-mix(in srgb,var(--c) 46%,#141618)}
+.map .pillbg{fill:#191C1E;stroke:var(--c);stroke-width:2.5;cursor:pointer}
+.map .ring{fill:none;stroke:#D5DADD;stroke-width:1.6}
+.map .pn{font-family:var(--mono);font-size:12.5px;letter-spacing:.16em;fill:var(--muted);text-anchor:middle;text-transform:uppercase;pointer-events:none}
+.map .pv{font-family:var(--serif);font-weight:500;font-size:44px;fill:#F2F4F5;text-anchor:middle;font-variant-numeric:oldstyle-nums;pointer-events:none}
+.map .pl{font-size:15px;fill:#E6E9EB;text-anchor:middle;pointer-events:none}
+.map .tag{font-family:var(--mono);font-size:12px;letter-spacing:.2em;fill:var(--muted)}
+.map g[role="button"]:focus-visible{outline:none}
+.map g[role="button"]:focus-visible .pillbg{stroke:var(--accent);stroke-width:3.5}
+.rbuttons{display:none;gap:8px;padding:12px;flex-wrap:wrap}
+.rb{flex:1 1 30%;border:1px solid var(--line);background:#191C1E;border-radius:8px;padding:8px 10px;text-align:left;font-size:13px}
+.rb b{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:400}
+.rb span{font-family:var(--serif);font-size:24px;font-variant-numeric:oldstyle-nums}
+.rb[aria-pressed="true"]{border-color:var(--soft)}
+
+.detail{background:#181B1D;border:1px solid var(--line);border-radius:8px;padding:28px 28px 20px;display:flex;flex-direction:column;gap:0}
+.dnum{display:flex;align-items:center;gap:20px;margin-top:36px}
+.dnum .big{font-family:var(--serif);font-weight:500;font-size:112px;line-height:.8;font-variant-numeric:oldstyle-nums;letter-spacing:-.02em}
+.dnum .band{display:flex;align-items:center;gap:12px;font-size:18px;font-weight:500;margin-top:10px}
+.dnum .band i{width:12px;height:12px;border-radius:50%;background:var(--c)}
+.seg5{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:20px}
+.seg5 span{height:8px;border-radius:4px;background:color-mix(in srgb,var(--c) 26%,#181B1D)}
+.seg5 span.on{background:var(--c)}
+.seg5b{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:14px;font-family:var(--mono);font-size:12.5px;letter-spacing:.06em;color:var(--muted);text-align:right}
+.advice{margin:20px 0 0;font-size:17px;line-height:1.6;color:var(--soft)}
+.facts{display:grid;grid-template-columns:1fr 1fr;margin-top:auto;padding-top:26px}
+.fact{border-top:1px solid var(--line);padding:16px 0 14px}
+.fact:nth-child(odd){padding-right:16px}
+.fact:nth-child(even){padding-left:16px}
+.fact .eyebrow{font-size:11px}
+.fact b{display:block;margin-top:6px;font-family:var(--mono);font-weight:500;font-size:17px;letter-spacing:.02em}
+.legend{display:flex;flex-wrap:wrap;gap:10px 26px;margin-top:22px;color:var(--soft);font-size:15px}
+.legend span{display:inline-flex;align-items:center;gap:10px}
+.legend i{width:13px;height:13px;border-radius:3px;background:var(--c)}
+.note{margin:16px 0 0;color:var(--muted);font-size:15px;line-height:1.55}
+.src{margin:6px 0 0;font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--muted)}
+.src b{font-weight:500;color:var(--soft)}
+
+/* ---------- weather ---------- */
+.banner{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:0 0 20px;padding:14px 18px;border:1px solid var(--line);border-left:3px solid var(--accent);background:var(--panel);border-radius:8px;color:var(--soft);font-size:14px}
+.btn{border:1px solid var(--line);background:transparent;border-radius:8px;padding:7px 14px;font-family:var(--mono);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase}
+.btn:hover{border-color:var(--soft)}
+.wxgrid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:20px;margin-top:20px}
+.wxgrid .card{margin:0}
+.sec-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:18px}
+.sec-h h3{margin:6px 0 0;font-family:var(--serif);font-weight:500;font-size:28px;line-height:1.1}
+.now{display:flex;align-items:center;gap:22px;margin-bottom:22px;flex-wrap:wrap}
+.now svg{width:60px;height:60px;color:var(--accent);flex:none}
+.now .t{font-family:var(--serif);font-weight:500;font-size:84px;line-height:.85;font-variant-numeric:oldstyle-nums;letter-spacing:-.02em}
+.now .d{color:var(--soft);font-size:16px}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
+.tile{border-top:1px solid var(--line);padding-top:12px}
+.tile b{display:block;margin-top:5px;font-family:var(--mono);font-weight:500;font-size:17px}
+.chart{width:100%;min-height:200px}
+.chart svg{display:block;touch-action:pan-y}
+.chart text{font-family:var(--mono)}
+.fday{display:grid;grid-template-columns:70px 28px 1fr auto;align-items:center;gap:12px;padding:13px 0;border-top:1px solid var(--line)}
+.fday:first-child{border-top:0;padding-top:0}
+.fday svg{width:26px;height:26px;color:var(--accent)}
+.fday .d b{display:block;font-weight:500;font-size:14.5px}
+.fday .d span{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--muted)}
+.fday .c{font-size:13.5px;color:var(--soft)}
+.fday .r{font-family:var(--mono);font-size:13px;text-align:right}
+.fday .r span{display:block;font-size:11px;color:var(--muted)}
+
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+.stat b{display:block;margin-top:8px;font-family:var(--serif);font-weight:500;font-size:28px;line-height:1.1;font-variant-numeric:oldstyle-nums}
+.stat small{display:block;margin-top:4px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin:26px 0 18px}
+select{font:inherit;font-size:13.5px;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+.sortwrap{display:flex;align-items:center;gap:10px}
+.g-asean{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:20px;align-items:start}
+.cities{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.city{text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:16px}
+.city:hover{border-color:#47505A}
+.city.sel{border-color:var(--accent)}
+.city .top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.city .top b{display:block;font-family:var(--serif);font-weight:500;font-size:24px;line-height:1.1}
+.city .top .eyebrow{display:block;margin-top:5px;font-size:10.5px}
+.city .tt{display:flex;align-items:center;gap:8px}
+.city .tt svg{width:26px;height:26px;color:var(--accent)}
+.city .tt span{font-family:var(--serif);font-size:38px;line-height:1;font-variant-numeric:oldstyle-nums}
+.city .desc{color:var(--soft);font-size:14px}
+.city .foot{display:flex;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:11.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
+.sticky{position:sticky;top:20px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:26px 26px 20px}
+.skel{color:var(--muted)}
+
+footer{margin-top:36px;color:var(--muted);font-size:12.5px;max-width:80ch}
+
+@media (max-width:860px){
+  .hz-grid,.wxgrid,.g-asean{grid-template-columns:minmax(0,1fr)}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .sticky{position:static}
+  .dnum{margin-top:36px}
+}
+@media (max-width:620px){
+  .wrap{padding:18px 14px 48px}
+  .card{padding:22px 18px}
+  .rbuttons{display:flex}
+  .cities{grid-template-columns:minmax(0,1fr)}
+  .tiles{grid-template-columns:repeat(2,1fr)}
+  .dnum .big{font-size:88px}
+  .detail{padding:26px 20px 20px}
+  header h1{font-size:34px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow" id="now">&nbsp;</div>
+      <h1>Haze Watch</h1>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Region">
+      <button class="tab" role="tab" id="tab-singapore" data-view="singapore">Singapore</button>
+      <button class="tab" role="tab" id="tab-asean" data-view="asean">ASEAN weather</button>
+    </div>
+  </header>
+  <main id="app"></main>
+  <footer>Haze readings (PSI and PM2.5) are from the National Environment Agency via data.gov.sg and cover Singapore only. Weather for every city is from Open-Meteo. For official advisories, check the NEA website.</footer>
+</div>
+
+<script>
+/* ---------- data sources ---------- */
+const HAZE_URL = 'https://api-open.data.gov.sg/v2/real-time/api/psi';           // NEA, via data.gov.sg
+const wxUrl = cs => 'https://api.open-meteo.com/v1/forecast'
+  + '?latitude=' + cs.map(c => c.lat).join(',') + '&longitude=' + cs.map(c => c.lon).join(',')
+  + '&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m'
+  + '&hourly=temperature_2m'
+  + '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max'
+  + '&timezone=auto&forecast_days=5';
+
+/* Last reading saved from data.gov.sg (15 Nov 2026, 21:00 SGT). Shown only when the live request cannot be made. */
+const SNAPSHOT = {
+  ts:'2026-11-15T21:00:00+08:00', updated:'2026-11-15T21:45:46+08:00', live:false,
+  readings:{
+    psi_twenty_four_hourly:{north:38,south:40,west:42,east:41,central:40},
+    pm25_twenty_four_hourly:{north:9,south:10,west:10,east:10,central:10},
+    pm10_twenty_four_hourly:{north:18,south:15,west:19,east:21,central:19},
+    pm25_sub_index:{north:38,south:40,west:42,east:41,central:40},
+    pm10_sub_index:{north:18,south:15,west:19,east:21,central:19},
+    o3_sub_index:{north:17,south:10,west:10,east:11,central:17},
+    so2_sub_index:{north:5,south:3,west:2,east:6,central:2},
+    co_sub_index:{north:6,south:4,west:3,east:6,central:6}
+  }
+};
+
+const CITIES = [
+  {id:'sg',  city:'Singapore',           country:'Singapore',   lat:1.3521,  lon:103.8198},
+  {id:'kl',  city:'Kuala Lumpur',        country:'Malaysia',    lat:3.1390,  lon:101.6869},
+  {id:'jkt', city:'Jakarta',             country:'Indonesia',   lat:-6.2088, lon:106.8456},
+  {id:'mnl', city:'Manila',              country:'Philippines', lat:14.5995, lon:120.9842},
+  {id:'bkk', city:'Bangkok',             country:'Thailand',    lat:13.7563, lon:100.5018},
+  {id:'han', city:'Hanoi',               country:'Vietnam',     lat:21.0285, lon:105.8542},
+  {id:'sgn', city:'Ho Chi Minh City',    country:'Vietnam',     lat:10.8231, lon:106.6297},
+  {id:'pnh', city:'Phnom Penh',          country:'Cambodia',    lat:11.5564, lon:104.9282},
+  {id:'bwn', city:'Bandar Seri Begawan', country:'Brunei',      lat:4.9031,  lon:114.9398},
+  {id:'rgn', city:'Yangon',              country:'Myanmar',     lat:16.8409, lon:96.1735},
+  {id:'vte', city:'Vientiane',           country:'Laos',        lat:17.9757, lon:102.6331},
+  {id:'pku', city:'Pekanbaru',           country:'Indonesia',   lat:0.5071,  lon:101.4478}
+];
+
+/* ---------- haze (NEA) ---------- */
+const BANDS = [
+  {k:'good', max:50,  label:'Good',           range:'0–50',    advice:'Air is clean. Normal outdoor activity is fine for everyone.'},
+  {k:'mod',  max:100, label:'Moderate',       range:'51–100',  advice:'Air is acceptable. Normal activity is fine; unusually sensitive people may notice mild irritation.'},
+  {k:'unh',  max:200, label:'Unhealthy',      range:'101–200', advice:'Cut back on prolonged or strenuous outdoor activity, especially if you are older, pregnant, or have heart or lung conditions.'},
+  {k:'vun',  max:300, label:'Very unhealthy', range:'201–300', advice:'Avoid outdoor activity. Wear an N95 mask if you must go out, and keep windows closed.'},
+  {k:'haz',  max:Infinity, label:'Hazardous', range:'301+',    advice:'Stay indoors with windows closed. Seek medical advice if you feel unwell.'}
+];
+const band = v => BANDS.find(b => v <= b.max);
+const bi = v => BANDS.indexOf(band(v));
+const bc = v => `var(--b-${band(v).k})`;
+
+const REGIONS = [
+  {id:'north',   name:'North',   eg:'Woodlands, Yishun, Sembawang'},
+  {id:'west',    name:'West',    eg:'Jurong, Clementi, Tuas'},
+  {id:'central', name:'Central', eg:'Toa Payoh, Bishan, Orchard'},
+  {id:'east',    name:'East',    eg:'Tampines, Bedok, Changi'},
+  {id:'south',   name:'South',   eg:'Marina Bay, Telok Blangah, Sentosa'}
+];
+/* map geometry, 871 x 595 */
+const POLY = {
+  west:   '314,102 281,100 238,105 191,160 141,220 76,285 67,355 93,425 123,413 173,360 236,385 314,408',
+  north:  '314,102 328,103 376,84 421,60 471,83 514,105 591,152 591,212 314,212',
+  central:'314,212 591,212 591,350 314,350',
+  east:   '591,152 631,160 661,190 711,218 766,240 799,272 794,322 766,327 591,360',
+  south:  '314,350 591,350 591,360 506,377 496,405 456,425 366,428 314,408'
+};
+const PILL = {north:[443,125], west:[192,281], central:[436,273], east:[679,281], south:[443,523]};
+const POLLUTANTS = [['pm25_sub_index','PM2.5'],['pm10_sub_index','PM10'],['o3_sub_index','O₃'],['so2_sub_index','SO₂'],['co_sub_index','CO']];
+
+const SG = 'Asia/Singapore';
+const tfmt = (iso, o) => new Intl.DateTimeFormat('en-GB', {timeZone:SG, ...o}).format(new Date(iso));
+const hhmm = iso => tfmt(iso, {hour:'2-digit', minute:'2-digit', hour12:false});
+const dmon = iso => tfmt(iso, {day:'numeric', month:'short'});
+const sameDay = iso => tfmt(iso, {year:'numeric', month:'numeric', day:'numeric'}) === tfmt(new Date().toISOString(), {year:'numeric', month:'numeric', day:'numeric'});
+
+/* ---------- weather helpers (WMO codes from Open-Meteo) ---------- */
+function wmo(code){
+  if (code === 0) return ['sun','Clear sky'];
+  if (code === 1) return ['sun','Mainly clear'];
+  if (code === 2) return ['partly','Partly cloudy'];
+  if (code === 3) return ['cloud','Overcast'];
+  if (code === 45 || code === 48) return ['haze','Fog'];
+  if (code >= 51 && code <= 57) return ['rain','Drizzle'];
+  if (code >= 61 && code <= 67) return ['rain','Rain'];
+  if (code >= 71 && code <= 77) return ['cloud','Snow'];
+  if (code >= 80 && code <= 82) return ['rain','Rain showers'];
+  if (code >= 85 && code <= 86) return ['cloud','Snow showers'];
+  if (code >= 95) return ['storm','Thunderstorm'];
+  return ['cloud','Cloudy'];
+}
+const ICONS = {
+  sun:   '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>',
+  partly:'<circle cx="8" cy="8" r="2.8"/><path d="M8 2.5v1.2M2.5 8h1.2M4.1 4.1l.9.9M11.9 4.1l-.9.9"/><path transform="translate(4.5 4) scale(.75)" d="M7.5 18h9a4 4 0 0 0 .5-7.97 5.5 5.5 0 0 0-10.6 1.2A3.5 3.5 0 0 0 7.5 18z"/>',
+  cloud: '<path d="M7.5 18h9a4 4 0 0 0 .5-7.97 5.5 5.5 0 0 0-10.6 1.2A3.5 3.5 0 0 0 7.5 18z"/>',
+  rain:  '<path transform="translate(0 -2)" d="M7.5 18h9a4 4 0 0 0 .5-7.97 5.5 5.5 0 0 0-10.6 1.2A3.5 3.5 0 0 0 7.5 18z"/><path d="M8 19.5v2M12 19.5v2M16 19.5v2"/>',
+  storm: '<path transform="translate(0 -2)" d="M7.5 18h9a4 4 0 0 0 .5-7.97 5.5 5.5 0 0 0-10.6 1.2A3.5 3.5 0 0 0 7.5 18z"/><path d="M12.5 14l-2.5 3.5h3L11 21"/>',
+  haze:  '<path d="M7 13a5 5 0 0 1 10 0"/><path d="M12 4v2M5 8l1.4 1.4M19 8l-1.4 1.4"/><path d="M3 16.5h18M6 20h12"/>'
+};
+const icon = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k]}</svg>`;
+const compass = d => ['N','NE','E','SE','S','SW','W','NW'][Math.round(d / 45) % 8];
+const r0 = v => Math.round(v);
+const dayLabel = (iso, tz) => new Intl.DateTimeFormat('en-GB', {timeZone:tz, weekday:'short'}).format(new Date(iso + 'T12:00:00Z'));
+const dayDate = iso => new Intl.DateTimeFormat('en-GB', {timeZone:'UTC', day:'numeric', month:'short'}).format(new Date(iso + 'T12:00:00Z'));
+const localTime = tz => tz ? new Intl.DateTimeFormat('en-GB', {timeZone:tz, hour:'2-digit', minute:'2-digit', hour12:false}).format(new Date()) : '--:--';
+
+/* ---------- state ---------- */
+const state = {
+  view: location.hash === '#asean' ? 'asean' : 'singapore',
+  region: 'central',
+  city: 'sg',
+  sort: 'temp',
+  haze: SNAPSHOT,
+  wx: null,            // {cityId: parsed}
+  wxStatus: 'loading'  // loading | ok | error
+};
+let focusKey = null;
+
+async function getJSON(url){
+  const c = new AbortController(), t = setTimeout(() => c.abort(), 10000);
+  try { const r = await fetch(url, {signal:c.signal}); if (!r.ok) throw new Error('HTTP ' + r.status); return await r.json(); }
+  finally { clearTimeout(t); }
+}
+async function loadHaze(){
+  try {
+    const j = await getJSON(HAZE_URL);
+    const it = j.data.items[0];
+    if (!it.readings.psi_twenty_four_hourly) throw new Error('unexpected shape');
+    state.haze = {ts:it.timestamp, updated:it.updatedTimestamp, readings:it.readings, live:true};
+  } catch (e) { if (!state.haze.live) state.haze = SNAPSHOT; }
+  render();
+}
+async function loadWx(){
+  state.wxStatus = 'loading'; if (!state.wx) render();
+  try {
+    let j = await getJSON(wxUrl(CITIES)); if (!Array.isArray(j)) j = [j];
+    const out = {};
+    j.forEach((o, i) => {
+      const hrs = o.hourly.time, start = Math.max(0, hrs.indexOf(o.current.time.slice(0, 13) + ':00'));
+      out[CITIES[i].id] = {
+        tz:o.timezone, cur:o.current, daily:o.daily,
+        next24:{t:hrs.slice(start, start + 24), v:o.hourly.temperature_2m.slice(start, start + 24)}
+      };
+    });
+    state.wx = out; state.wxStatus = 'ok';
+  } catch (e) { state.wxStatus = state.wx ? 'ok' : 'error'; }
+  render();
+}
+
+/* ---------- haze section ---------- */
+function regionRead(id){
+  const R = state.haze.readings;
+  const sub = POLLUTANTS.map(([k, n]) => [n, (R[k] || {})[id] ?? -1]).sort((a, b) => b[1] - a[1])[0];
+  return {psi:R.psi_twenty_four_hourly[id], pm25:R.pm25_twenty_four_hourly[id], pm10:R.pm10_twenty_four_hourly[id], main:sub[0]};
+}
+function mapSvg(){
+  const sel = state.region;
+  const polys = REGIONS.map(r => {
+    const v = regionRead(r.id).psi;
+    return `<polygon class="region" data-region="${r.id}" style="--c:${bc(v)}" points="${POLY[r.id]}"><title>${r.name}: PSI ${v}</title></polygon>`;
+  }).join('');
+  const south = regionRead('south').psi;
+  const pills = REGIONS.map(r => {
+    const v = regionRead(r.id).psi, [cx, cy] = PILL[r.id], on = r.id === sel;
+    return `<g role="button" tabindex="0" data-region="${r.id}" data-focus="b-${r.id}" style="--c:${bc(v)}" aria-label="${r.name}, PSI ${v}, ${band(v).label}" aria-pressed="${on}">
+      ${on ? `<rect class="ring" x="${cx-77}" y="${cy-51}" width="154" height="102" rx="12"/>` : ''}
+      <rect class="pillbg" x="${cx-70}" y="${cy-44}" width="140" height="88" rx="7"/>
+      <text class="pn" x="${cx}" y="${cy-22}">${r.name}</text>
+      <text class="pv" x="${cx}" y="${cy+14}">${v}</text>
+      <text class="pl" x="${cx}" y="${cy+34}">${band(v).label}</text></g>`;
+  }).join('');
+  return `<svg class="map" viewBox="0 0 871 595" role="group" aria-label="Map of Singapore with PSI for five areas">
+    <text class="tag" x="435" y="36" text-anchor="middle">JOHOR, MALAYSIA</text>
+    <text class="tag" x="18" y="569">SINGAPORE STRAIT</text>
+    ${polys}
+    <polygon style="fill:color-mix(in srgb,${bc(south)} 38%,#141618);stroke:#171A1B;stroke-width:2;stroke-linejoin:round" points="403,445 471,435 496,443 481,455 416,460" pointer-events="none"/>
+    <circle cx="443" cy="393" r="5" fill="#8C969D"/>
+    <line x1="443" y1="393" x2="443" y2="472" stroke="#8C969D" stroke-width="1.6" stroke-dasharray="2 4"/>
+    ${pills}
+  </svg>`;
+}
+function hazeSection(){
+  const H = state.haze, reg = REGIONS.find(r => r.id === state.region), d = regionRead(reg.id), b = band(d.psi), bidx = bi(d.psi);
+  const ticks = ['50','100','200','300','300+'];
+  const when = `${hhmm(H.ts)} SGT${sameDay(H.ts) ? '' : ' on ' + dmon(H.ts)}`;
+  const upd = hhmm(H.updated);
+  return `<section class="card hz" aria-label="Singapore PSI by area">
+    <div class="eyebrow">Singapore · NEA 24-hour PSI</div>
+    <h2>PSI by area</h2>
+    <div class="hz-grid">
+      <div class="mapbox">${mapSvg()}
+        <div class="rbuttons">${REGIONS.map(r => `<button class="rb" data-region="${r.id}" data-focus="rb-${r.id}" aria-pressed="${r.id===state.region}"><b>${r.name}</b><span>${regionRead(r.id).psi}</span></button>`).join('')}</div>
+      </div>
+      <aside class="detail" aria-label="${reg.name} detail" style="--c:var(--b-${b.k})">
+        <div class="eyebrow">${reg.name} · e.g. ${reg.eg}</div>
+        <div class="dnum"><div class="big">${d.psi}</div><div class="band"><i></i>${b.label}</div></div>
+        <div class="seg5" aria-hidden="true">${BANDS.map((x, i) => `<span class="${i===bidx?'on':''}" style="--c:var(--b-${x.k})"></span>`).join('')}</div>
+        <div class="seg5b" aria-hidden="true">${ticks.map(t => `<span>${t}</span>`).join('')}</div>
+        <p class="advice">${b.advice}</p>
+        <div class="facts">
+          <div class="fact"><div class="eyebrow">PM2.5, 24 h</div><b>${d.pm25} µg/m³</b></div>
+          <div class="fact"><div class="eyebrow">PM10, 24 h</div><b>${d.pm10} µg/m³</b></div>
+          <div class="fact"><div class="eyebrow">Main pollutant</div><b>${d.main}</b></div>
+        </div>
+      </aside>
+    </div>
+    <div class="legend">${BANDS.map(x => `<span style="--c:var(--b-${x.k})"><i></i>${x.label} ${x.range}</span>`).join('')}</div>
+    <p class="note">Reading for ${when}, updated ${upd}. Area boundaries are approximate. PSI is a 24-hour measure and NEA updates it every hour. Tap an area for details.</p>
+    <p class="src">SOURCE <b>National Environment Agency via data.gov.sg</b> · ${H.live ? 'LIVE' : 'LAST SAVED READING, LIVE FEED NOT REACHABLE IN THIS VIEW'}</p>
+  </section>`;
+}
+
+/* ---------- weather section ---------- */
+function banner(){
+  if (state.wxStatus === 'ok') return '';
+  if (state.wxStatus === 'loading') return `<div class="banner" role="status"><span>Loading weather from Open-Meteo…</span></div>`;
+  return `<div class="banner" role="alert"><span>Weather from Open-Meteo could not be loaded here. Open this file in a regular browser tab for live conditions.</span><button class="btn" data-retry data-focus="retry">Try again</button></div>`;
+}
+function forecastHtml(w){
+  const dl = w.daily;
+  return dl.time.map((t, k) => {
+    const [ic, txt] = wmo(dl.weather_code[k]);
+    return `<div class="fday">
+      <div class="d"><b>${k === 0 ? 'Today' : dayLabel(t, 'UTC')}</b><span>${dayDate(t)}</span></div>
+      ${icon(ic)}<div class="c">${txt}</div>
+      <div class="r num">${r0(dl.temperature_2m_max[k])}° / ${r0(dl.temperature_2m_min[k])}°<span>${dl.precipitation_probability_max[k] ?? '–'}% rain</span></div>
+    </div>`;
+  }).join('');
+}
+function tilesHtml(w){
+  const c = w.cur;
+  return `<div class="tiles num">
+    <div class="tile"><div class="eyebrow">Feels like</div><b>${r0(c.apparent_temperature)}°C</b></div>
+    <div class="tile"><div class="eyebrow">Humidity</div><b>${r0(c.relative_humidity_2m)}%</b></div>
+    <div class="tile"><div class="eyebrow">Wind</div><b>${compass(c.wind_direction_10m)} ${r0(c.wind_speed_10m)} km/h</b></div>
+    <div class="tile"><div class="eyebrow">Rain today</div><b>${w.daily.precipitation_probability_max[0] ?? '–'}%</b></div>
+  </div>`;
+}
+const chartHtml = w => `<div class="chart" data-chart data-v='${JSON.stringify(w.next24.v)}' data-t='${JSON.stringify(w.next24.t)}'></div>`;
+
+function singaporeWeather(){
+  const w = state.wx && state.wx.sg;
+  if (!w) return banner() + `<div class="wxgrid"><section class="card"><div class="sec-h"><div><div class="eyebrow">Open-Meteo</div><h3>Weather now</h3></div></div><p class="skel">Current conditions will appear here once Open-Meteo responds.</p></section><section class="card"><div class="sec-h"><div><div class="eyebrow">Open-Meteo</div><h3>Next 5 days</h3></div></div><p class="skel">Forecast will appear here.</p></section></div>`;
+  const [ic, txt] = wmo(w.cur.weather_code);
+  return `<div class="wxgrid">
+    <section class="card" aria-label="Current weather in Singapore">
+      <div class="sec-h"><div><div class="eyebrow">Singapore · Open-Meteo</div><h3>Weather now</h3></div><div class="eyebrow num">${localTime(w.tz)} local</div></div>
+      <div class="now">${icon(ic)}<div class="t num">${r0(w.cur.temperature_2m)}°</div><div class="d">${txt}</div></div>
+      ${tilesHtml(w)}
+      <div class="eyebrow" style="margin-bottom:6px">Next 24 hours, °C</div>
+      ${chartHtml(w)}
+    </section>
+    <section class="card" aria-label="Singapore forecast">
+      <div class="sec-h"><div><div class="eyebrow">Singapore · Open-Meteo</div><h3>Next 5 days</h3></div></div>
+      ${forecastHtml(w)}
+    </section>
+  </div>`;
+}
+function singaporeView(){ return hazeSection() + (state.wxStatus === 'ok' ? '' : '') + `<div style="margin-top:20px"></div>` + singaporeWeather(); }
+
+function aseanView(){
+  const ready = state.wxStatus === 'ok' && state.wx;
+  const rows = CITIES.map(c => ({c, w:ready ? state.wx[c.id] : null}));
+  const have = rows.filter(r => r.w);
+  const tempOf = r => r.w ? r.w.cur.temperature_2m : -99;
+  const rainOf = r => r.w ? (r.w.daily.precipitation_probability_max[0] ?? 0) : -1;
+  rows.sort((a, b) => state.sort === 'name' ? a.c.city.localeCompare(b.c.city) : state.sort === 'rain' ? rainOf(b) - rainOf(a) : tempOf(b) - tempOf(a));
+
+  let stats = '';
+  if (have.length) {
+    const hot = [...have].sort((a, b) => tempOf(b) - tempOf(a))[0], cool = [...have].sort((a, b) => tempOf(a) - tempOf(b))[0];
+    const wet = [...have].sort((a, b) => rainOf(b) - rainOf(a))[0];
+    const avg = r0(have.reduce((s, r) => s + tempOf(r), 0) / have.length);
+    stats = `<div class="stats">
+      <div class="stat"><div class="eyebrow">Average now</div><b class="num">${avg}°C</b><small>${have.length} cities</small></div>
+      <div class="stat"><div class="eyebrow">Warmest</div><b>${hot.c.city}</b><small class="num">${r0(tempOf(hot))}°C</small></div>
+      <div class="stat"><div class="eyebrow">Coolest</div><b>${cool.c.city}</b><small class="num">${r0(tempOf(cool))}°C</small></div>
+      <div class="stat"><div class="eyebrow">Wettest today</div><b>${wet.c.city}</b><small class="num">${rainOf(wet)}% chance of rain</small></div>
+    </div>`;
+  }
+  const sel = CITIES.find(c => c.id === state.city), sw = state.wx && state.wx[sel.id];
+  let detail;
+  if (sw) {
+    const [ic, txt] = wmo(sw.cur.weather_code);
+    detail = `<div class="sec-h"><div><div class="eyebrow">${sel.country} · ${localTime(sw.tz)} local</div><h3>${sel.city}</h3></div></div>
+      <div class="now" style="margin-bottom:18px">${icon(ic)}<div class="t num" style="font-size:64px">${r0(sw.cur.temperature_2m)}°</div><div class="d">${txt}</div></div>
+      ${tilesHtml(sw)}
+      <div class="eyebrow" style="margin-bottom:6px">Next 24 hours, °C</div>${chartHtml(sw)}
+      <div class="eyebrow" style="margin:22px 0 14px">Next 5 days</div>${forecastHtml(sw)}`;
+  } else detail = `<div class="sec-h"><div><div class="eyebrow">${sel.country}</div><h3>${sel.city}</h3></div></div><p class="skel">Conditions will appear here once Open-Meteo responds.</p>`;
+
+  return `${banner()}${stats}
+  <div class="toolbar">
+    <div class="eyebrow">Weather · Open-Meteo · Haze readings are Singapore only</div>
+    <label class="sortwrap eyebrow" for="sort">Sort by
+      <select id="sort"><option value="temp"${state.sort==='temp'?' selected':''}>Temperature</option><option value="rain"${state.sort==='rain'?' selected':''}>Chance of rain</option><option value="name"${state.sort==='name'?' selected':''}>City name</option></select>
+    </label>
+  </div>
+  <div class="g-asean">
+    <div class="cities">${rows.map(({c, w}) => {
+      const [ic, txt] = w ? wmo(w.cur.weather_code) : ['cloud', 'Not loaded'];
+      return `<button class="city${c.id===state.city?' sel':''}" data-city="${c.id}" data-focus="c-${c.id}" aria-pressed="${c.id===state.city}">
+        <div class="top"><div><b>${c.city}</b><span class="eyebrow num">${c.country} · ${localTime(w && w.tz)}</span></div>
+          <div class="tt">${w ? icon(ic) : ''}<span class="num">${w ? r0(w.cur.temperature_2m) + '°' : '–'}</span></div></div>
+        <div class="desc">${txt}${w ? `, ${r0(w.daily.temperature_2m_max[0])}° / ${r0(w.daily.temperature_2m_min[0])}° today` : ''}</div>
+        <div class="foot num">${w ? `<span>${r0(w.cur.relative_humidity_2m)}% humidity</span><span>${compass(w.cur.wind_direction_10m)} ${r0(w.cur.wind_speed_10m)} km/h</span><span>${w.daily.precipitation_probability_max[0] ?? '–'}% rain</span>` : '<span>Waiting for Open-Meteo</span>'}</div>
+      </button>`;
+    }).join('')}</div>
+    <aside class="panel sticky" id="detail" aria-label="${sel.city} weather">${detail}</aside>
+  </div>`;
+}
+
+/* ---------- chart (next 24 h temperature) ---------- */
+function drawChart(host){
+  const v = JSON.parse(host.dataset.v), t = JSON.parse(host.dataset.t), n = v.length;
+  if (n < 2) return;
+  const W = Math.max(240, host.clientWidth || 480), H = 200, pl = 34, pr = 12, pt = 20, pb = 26;
+  const lo = Math.floor(Math.min(...v) - 1), hi = Math.ceil(Math.max(...v) + 1);
+  const x = i => pl + (W - pl - pr) * i / (n - 1), y = a => pt + (H - pt - pb) * (1 - (a - lo) / (hi - lo));
+  const hr = s => { const h = +s.slice(11, 13); return (h % 12 || 12) + (h < 12 ? 'am' : 'pm'); };
+  const gl = [lo, (lo + hi) / 2, hi].map(a => `<line x1="${pl}" x2="${W-pr}" y1="${y(a)}" y2="${y(a)}" stroke="#2C3236" stroke-dasharray="3 4"/><text x="${pl-7}" y="${y(a)+4}" text-anchor="end" font-size="10.5" fill="#8C969D">${Math.round(a)}</text>`).join('');
+  const xi = [0, Math.round((n-1)/3), Math.round(2*(n-1)/3), n-1];
+  const xt = xi.map((i, k) => `<text x="${x(i)}" y="${H-7}" text-anchor="${k===0?'start':k===3?'end':'middle'}" font-size="10.5" fill="#8C969D">${i===0?'Now':hr(t[i])}</text>`).join('');
+  const pts = v.map((a, i) => `${x(i).toFixed(1)},${y(a).toFixed(1)}`), line = 'M' + pts.join(' L');
+  const gid = 'g' + Math.random().toString(36).slice(2, 7);
+  host.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Temperature over the next 24 hours, now ${Math.round(v[0])} degrees">
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F0914A" stop-opacity=".24"/><stop offset="1" stop-color="#F0914A" stop-opacity="0"/></linearGradient></defs>
+    ${gl}${xt}<path d="${line} L${x(n-1)},${H-pb} L${x(0)},${H-pb} Z" fill="url(#${gid})"/>
+    <path d="${line}" fill="none" stroke="#F0914A" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+    <line class="gd" y1="${pt}" y2="${H-pb}" stroke="#8C969D" opacity=".5"/><circle class="dt" r="5" fill="#F0914A" stroke="#1B1F22" stroke-width="2.5"/>
+    <text class="tp" text-anchor="middle" font-size="12" font-weight="500" fill="#E9ECEE" stroke="#1B1F22" stroke-width="4" paint-order="stroke"></text></svg>`;
+  const svg = host.firstElementChild, gd = svg.querySelector('.gd'), dt = svg.querySelector('.dt'), tp = svg.querySelector('.tp');
+  const show = i => {
+    const cx = x(i), cy = y(v[i]);
+    gd.setAttribute('x1', cx); gd.setAttribute('x2', cx); dt.setAttribute('cx', cx); dt.setAttribute('cy', cy);
+    tp.setAttribute('x', Math.min(W - pr - 30, Math.max(pl + 30, cx))); tp.setAttribute('y', cy < pt + 18 ? cy + 24 : cy - 11);
+    tp.textContent = (i === 0 ? 'Now' : hr(t[i])) + '  ' + v[i].toFixed(1) + '°';
+  };
+  svg.addEventListener('pointermove', e => show(Math.max(0, Math.min(n - 1, Math.round((e.clientX - svg.getBoundingClientRect().left - pl) / (W - pl - pr) * (n - 1))))));
+  svg.addEventListener('pointerleave', () => show(0));
+  show(0);
+}
+
+/* ---------- render + events ---------- */
+const app = document.getElementById('app');
+function render(){
+  document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', t.dataset.view === state.view));
+  app.innerHTML = state.view === 'singapore' ? singaporeView() : aseanView();
+  document.querySelectorAll('[data-chart]').forEach(drawChart);
+  if (focusKey) { const el = document.querySelector(`[data-focus="${focusKey}"]`); if (el) el.focus({preventScroll:true}); }
+}
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-view],[data-region],[data-city],[data-retry]');
+  if (!t) return;
+  focusKey = t.dataset.focus || null;
+  if (t.dataset.retry !== undefined) { loadWx(); return; }
+  if (t.dataset.view) { state.view = t.dataset.view; history.replaceState(null, '', '#' + state.view); focusKey = null; }
+  else if (t.dataset.region) state.region = t.dataset.region;
+  else if (t.dataset.city) {
+    state.city = t.dataset.city; render();
+    if (matchMedia('(max-width:860px)').matches) document.getElementById('detail').scrollIntoView({behavior: matchMedia('(prefers-reduced-motion:reduce)').matches ? 'auto' : 'smooth', block:'start'});
+    return;
+  }
+  render();
+});
+document.addEventListener('keydown', e => {
+  const g = e.target.closest && e.target.closest('g[role="button"][data-region]');
+  if (g && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); g.dispatchEvent(new MouseEvent('click', {bubbles:true})); }
+});
+document.addEventListener('change', e => {
+  if (e.target.id === 'sort') { state.sort = e.target.value; render(); const s = document.getElementById('sort'); if (s) s.focus({preventScroll:true}); }
+});
+window.addEventListener('hashchange', () => { const v = location.hash === '#asean' ? 'asean' : 'singapore'; if (v !== state.view) { state.view = v; focusKey = null; render(); } });
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => document.querySelectorAll('[data-chart]').forEach(drawChart), 120); });
+
+document.getElementById('now').textContent = tfmt(new Date().toISOString(), {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit', hour12:false}) + ' SGT';
+render();
+loadHaze(); loadWx();
+setInterval(() => { loadHaze(); loadWx(); }, 10 * 60 * 1000);
+</script>
+</body>
+</html>
