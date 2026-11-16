@@ -11,8 +11,8 @@
 /* Layout idea: one dark world. Serif for titles and big numbers, mono for small caps labels, sans for reading text. Haze section copies the supplied screenshot; weather cards use the same panel language. */
 :root{
   --bg:#121416; --panel:#1B1F22; --well:#141618; --line:#2C3236; --ink:#E9ECEE; --soft:#C9CFD3; --muted:#8C969D;
-  --accent:#F0914A;
-  --b-good:#5FB38C; --b-mod:#E3C04A; --b-unh:#E0705A; --b-vun:#B07FCB; --b-haz:#D4607E;
+  --accent:#F472B6;
+  --b-good:#5FB38C; --b-mod:#E3C04A; --b-unh:#E0705A; --b-vun:#B07FCB; --b-haz:#B83A5C;
   --serif:'Cormorant Garamond','EB Garamond',Georgia,serif;
   --sans:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
   --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
@@ -33,8 +33,8 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
 header h1{margin:6px 0 0;font-family:var(--serif);font-weight:500;font-size:40px;line-height:1;letter-spacing:-.01em}
 .tabs{display:flex;gap:6px}
 .tab{border:1px solid var(--line);background:transparent;color:var(--muted);padding:8px 18px;border-radius:8px;font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase}
-.tab:hover{color:var(--ink)}
-.tab[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:#1A1208;font-weight:500}
+.tab:hover{color:var(--ink);border-color:color-mix(in srgb,var(--accent) 50%,var(--line))}
+.tab[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:#1F0A16;font-weight:500}
 
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:30px 36px}
 .card + .card, .card + .grid, .grid + .card{margin-top:20px}
@@ -58,7 +58,7 @@ header h1{margin:6px 0 0;font-family:var(--serif);font-weight:500;font-size:40px
 .rb{flex:1 1 30%;border:1px solid var(--line);background:#191C1E;border-radius:8px;padding:8px 10px;text-align:left;font-size:13px}
 .rb b{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:400}
 .rb span{font-family:var(--serif);font-size:24px;font-variant-numeric:oldstyle-nums}
-.rb[aria-pressed="true"]{border-color:var(--soft)}
+.rb:hover{border-color:color-mix(in srgb,var(--accent) 50%,var(--line))}.rb[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,#191C1E)}
 
 .detail{background:#181B1D;border:1px solid var(--line);border-radius:8px;padding:28px 28px 20px;display:flex;flex-direction:column;gap:0}
 .dnum{display:flex;align-items:center;gap:20px;margin-top:36px}
@@ -86,7 +86,7 @@ header h1{margin:6px 0 0;font-family:var(--serif);font-weight:500;font-size:40px
 /* ---------- weather ---------- */
 .banner{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:0 0 20px;padding:14px 18px;border:1px solid var(--line);border-left:3px solid var(--accent);background:var(--panel);border-radius:8px;color:var(--soft);font-size:14px}
 .btn{border:1px solid var(--line);background:transparent;border-radius:8px;padding:7px 14px;font-family:var(--mono);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase}
-.btn:hover{border-color:var(--soft)}
+.btn{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}.btn:hover{background:color-mix(in srgb,var(--accent) 14%,transparent);border-color:var(--accent)}
 .wxgrid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:20px;margin-top:20px}
 .wxgrid .card{margin:0}
 .sec-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:18px}
@@ -497,10 +497,10 @@ function drawChart(host){
   const pts = v.map((a, i) => `${x(i).toFixed(1)},${y(a).toFixed(1)}`), line = 'M' + pts.join(' L');
   const gid = 'g' + Math.random().toString(36).slice(2, 7);
   host.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Temperature over the next 24 hours, now ${Math.round(v[0])} degrees">
-    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F0914A" stop-opacity=".24"/><stop offset="1" stop-color="#F0914A" stop-opacity="0"/></linearGradient></defs>
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F472B6" stop-opacity=".24"/><stop offset="1" stop-color="#F472B6" stop-opacity="0"/></linearGradient></defs>
     ${gl}${xt}<path d="${line} L${x(n-1)},${H-pb} L${x(0)},${H-pb} Z" fill="url(#${gid})"/>
-    <path d="${line}" fill="none" stroke="#F0914A" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
-    <line class="gd" y1="${pt}" y2="${H-pb}" stroke="#8C969D" opacity=".5"/><circle class="dt" r="5" fill="#F0914A" stroke="#1B1F22" stroke-width="2.5"/>
+    <path d="${line}" fill="none" stroke="#F472B6" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+    <line class="gd" y1="${pt}" y2="${H-pb}" stroke="#8C969D" opacity=".5"/><circle class="dt" r="5" fill="#F472B6" stroke="#1B1F22" stroke-width="2.5"/>
     <text class="tp" text-anchor="middle" font-size="12" font-weight="500" fill="#E9ECEE" stroke="#1B1F22" stroke-width="4" paint-order="stroke"></text></svg>`;
   const svg = host.firstElementChild, gd = svg.querySelector('.gd'), dt = svg.querySelector('.dt'), tp = svg.querySelector('.tp');
   const show = i => {
